@@ -1,13 +1,12 @@
 ZSH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
 export PATH="${PATH}:${HOME}/.local/bin"
 
-# -----------------------------------------------------------------------------
-# TMUX 
-# -----------------------------------------------------------------------------
+# Brew must be on PATH before Oh My Zsh and other tools resolve commands.
+source "$ZSH_CONFIG_DIR/brew.zsh"
 
-if [[ -r "$ZSH_CONFIG_DIR/brew.zsh" ]]; then
-  source "$ZSH_CONFIG_DIR/brew.zsh"
-fi
+# -----------------------------------------------------------------------------
+# Tmux
+# -----------------------------------------------------------------------------
 
 if [[ -o interactive && -z ${TMUX-} && ( "${TERM_PROGRAM:-}" == ghostty || -n "${GHOSTTY_RESOURCES_DIR:-}" ) ]]; then
   if command -v tmux >/dev/null 2>&1; then
@@ -25,26 +24,37 @@ fi
 
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME=""
-all_plugins=(
-  "git:"
+
+omz_plugins=(git)
+external_plugins=(
   "zsh-autosuggestions:https://github.com/zsh-users/zsh-autosuggestions"
   "zsh-history-substring-search:https://github.com/zsh-users/zsh-history-substring-search.git"
   "zsh-syntax-highlighting:https://github.com/zsh-users/zsh-syntax-highlighting.git"
 )
-plugins=("${(@)all_plugins%%:*}")
+
+# Install any missing external plugins before Oh My Zsh loads them.
+source "$ZSH_CONFIG_DIR/plugins.zsh"
+check_and_install_plugins
+
+plugins=($omz_plugins "${(@)external_plugins%%:*}")
 source "$ZSH/oh-my-zsh.sh"
 
-for zsh_config_file in "$ZSH_CONFIG_DIR"/*.zsh(N); do
-  [[ "$zsh_config_file" == "$ZSH_CONFIG_DIR/brew.zsh" ]] && continue
-  source "$zsh_config_file"
+# -----------------------------------------------------------------------------
+# Config modules
+# -----------------------------------------------------------------------------
+
+for _zsh_file in "$ZSH_CONFIG_DIR"/*.zsh(N); do
+  case "$_zsh_file" in
+    */brew.zsh|*/plugins.zsh) continue ;;
+  esac
+  source "$_zsh_file"
 done
-unset zsh_config_file 
+unset _zsh_file
 
 # -----------------------------------------------------------------------------
-# Zsh completion
+# Completion
 # -----------------------------------------------------------------------------
 
-# Interactive completion menu and forgiving matching.
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list \
   'm:{a-zA-Z}={A-Za-z}' \
@@ -73,14 +83,14 @@ setopt HIST_FIND_NO_DUPS
 setopt HIST_REDUCE_BLANKS
 setopt HIST_SAVE_NO_DUPS
 
-# Search only history entries matching what is already typed.
+# Search history entries matching the typed prefix.
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 bindkey '^[OA' history-substring-search-up
 bindkey '^[OB' history-substring-search-down
 
 # -----------------------------------------------------------------------------
-# Fish-like navigation and fuzzy search
+# Tools
 # -----------------------------------------------------------------------------
 
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
