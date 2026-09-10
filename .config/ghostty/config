@@ -1,10 +1,5 @@
 # This is the configuration file for Ghostty.
 #
-# This template file has been automatically created at the following
-# path since Ghostty couldn't find any existing config files on your system:
-#
-#   /Users/erikb/Library/Application Support/com.mitchellh.ghostty/config
-#
 # The template does not set any default options, since Ghostty ships
 # with sensible defaults for all options. Users should only need to set
 # options that they want to change from the default.
@@ -17,10 +12,9 @@
 #
 
 font-family = CommitMonoErikb Nerd Font
-font-size = 11
-window-padding-x = 8
+font-size = 9
+window-padding-x = 4
 theme = Xcode Dark hc
-# theme = Xcode Light hc 
 
 # Pass Command-S through tmux to AstroNvim's save mapping.
 keybind = super+s=text:\x13
@@ -28,3 +22,14 @@ keybind = super+s=text:\x13
 keybind = super+t=unbind
 macos-option-as-alt = true
 confirm-close-surface = false
+copy-on-select = false
+gtk-toolbar-style = flat
+gtk-titlebar = true 
+gtk-tabs-location = hidden
+
+# .config/ghostty/config
+keybind = ctrl+shift+t=unbind
+keybind = ctrl+shift+o=unbind
+keybind = ctrl+shift+e=unbind
+keybind = ctrl+shift+enter=unbind
+keybind = ctrl+shift+d=unbind

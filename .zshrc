@@ -4,8 +4,8 @@ ZSH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
 # TMUX 
 # -----------------------------------------------------------------------------
 
-if [[ -r "$ZSH_CONFIG_DIR/conf.d/brew.zsh" ]]; then
-  source "$ZSH_CONFIG_DIR/conf.d/brew.zsh"
+if [[ -r "$ZSH_CONFIG_DIR/brew.zsh" ]]; then
+  source "$ZSH_CONFIG_DIR/brew.zsh"
 fi
 
 if [[ -o interactive && -z ${TMUX-} && ( "${TERM_PROGRAM:-}" == ghostty || -n "${GHOSTTY_RESOURCES_DIR:-}" ) ]]; then
@@ -33,14 +33,11 @@ all_plugins=(
 plugins=("${(@)all_plugins%%:*}")
 source "$ZSH/oh-my-zsh.sh"
 
-for zsh_config_file in "$ZSH_CONFIG_DIR"/conf.d/*.zsh(N); do
-  [[ "$zsh_config_file" == "$ZSH_CONFIG_DIR/conf.d/brew.zsh" ]] && continue
+for zsh_config_file in "$ZSH_CONFIG_DIR"/*.zsh(N); do
+  [[ "$zsh_config_file" == "$ZSH_CONFIG_DIR/brew.zsh" ]] && continue
   source "$zsh_config_file"
 done
-for zsh_function_file in "$ZSH_CONFIG_DIR"/functions/*.zsh(N); do
-  source "$zsh_function_file"
-done
-unset zsh_config_file zsh_function_file
+unset zsh_config_file 
 
 # -----------------------------------------------------------------------------
 # Zsh completion
