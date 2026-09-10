@@ -3,8 +3,6 @@ if [[ ! -x "$_brew_bin" ]]; then
   for _brew_candidate in \
     /opt/homebrew/bin/brew \
     /usr/local/bin/brew \
-    /home/linuxbrew/.linuxbrew/bin/brew \
-    "$HOME/.linuxbrew/bin/brew"
   do
     if [[ -x "$_brew_candidate" ]]; then
       _brew_bin="$_brew_candidate"

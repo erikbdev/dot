@@ -1,8 +1,9 @@
+ZSH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+
 # -----------------------------------------------------------------------------
 # TMUX 
 # -----------------------------------------------------------------------------
 
-ZSH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
 if [[ -r "$ZSH_CONFIG_DIR/conf.d/brew.zsh" ]]; then
   source "$ZSH_CONFIG_DIR/conf.d/brew.zsh"
 fi
@@ -23,10 +24,15 @@ fi
 
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME=""
-plugins=(git zsh-autosuggestions zsh-history-substring-search zsh-syntax-highlighting)
+all_plugins=(
+  "git:"
+  "zsh-autosuggestions:https://github.com/zsh-users/zsh-autosuggestions"
+  "zsh-history-substring-search:https://github.com/zsh-users/zsh-history-substring-search.git"
+  "zsh-syntax-highlighting:https://github.com/zsh-users/zsh-syntax-highlighting.git"
+)
+plugins=("${(@)all_plugins%%:*}")
 source "$ZSH/oh-my-zsh.sh"
 
-# Load portable configuration converted from ~/.config/fish.
 for zsh_config_file in "$ZSH_CONFIG_DIR"/conf.d/*.zsh(N); do
   [[ "$zsh_config_file" == "$ZSH_CONFIG_DIR/conf.d/brew.zsh" ]] && continue
   source "$zsh_config_file"
