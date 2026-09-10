@@ -1,4 +1,5 @@
 ZSH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+export PATH="${PATH}:${HOME}/.local/bin"
 
 # -----------------------------------------------------------------------------
 # TMUX 
