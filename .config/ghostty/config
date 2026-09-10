@@ -13,8 +13,9 @@
 
 font-family = CommitMonoErikb Nerd Font
 font-size = 9
-window-padding-x = 4
 theme = Xcode Dark hc
+window-padding-x = 4
+window-inherit-font-size = false
 
 # Pass Command-S through tmux to AstroNvim's save mapping.
 keybind = super+s=text:\x13
@@ -33,3 +34,6 @@ keybind = ctrl+shift+o=unbind
 keybind = ctrl+shift+e=unbind
 keybind = ctrl+shift+enter=unbind
 keybind = ctrl+shift+d=unbind
+
+# Custom macOS Config
+config-file = ?~/Library/Application Support/com.mitchellh.ghostty/config

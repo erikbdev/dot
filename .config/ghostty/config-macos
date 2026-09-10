@@ -1,0 +1,2 @@
+# macOS-only override. Ghostty loads this through its macOS config path
+font-size = 11

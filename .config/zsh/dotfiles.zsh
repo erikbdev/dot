@@ -1,1 +1,6 @@
-alias dot='git --git-dir="$HOME/.dotfiles" --work-tree="$HOME"'
+dot() {
+  command git -C "$HOME" \
+    --git-dir="$HOME/.dotfiles" \
+    --work-tree="$HOME" \
+    "$@"
+}
