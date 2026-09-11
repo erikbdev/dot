@@ -20,6 +20,8 @@ window-inherit-font-size = false
 macos-option-as-alt = true
 copy-on-select = false
 gtk-toolbar-style = flat
+confirm-close-surface=false
+
 
 # Pass Command-S through tmux to AstroNvim's save mapping.
 keybind = super+s=text:\x13
