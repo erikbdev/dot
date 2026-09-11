@@ -8,7 +8,7 @@ source "$ZSH_CONFIG_DIR/brew.zsh"
 # Tmux
 # -----------------------------------------------------------------------------
 
-if [[ -o interactive && -z ${TMUX-} && -n "${GHOSTTY_RESOURCES_DIR:-}" ]] && command -v tmux >/dev/null 2>&1; then
+if [[ -o interactive && -z ${TMUX-} && -z ${GHOSTTY_TMUX_RESTORE-} && -n "${GHOSTTY_RESOURCES_DIR:-}" ]] && command -v tmux >/dev/null 2>&1; then
   _tmux_bin="${commands[tmux]}"
   if [[ -n ${commands[ghostty]-} ]]; then
     _ghostty_bin="${commands[ghostty]}"
@@ -20,42 +20,48 @@ if [[ -o interactive && -z ${TMUX-} && -n "${GHOSTTY_RESOURCES_DIR:-}" ]] && com
 
   typeset -a tmux_sessions
 
-  tmux_sessions=(${(@f)$(tmux list-sessions -F $'#{session_name}' 2>/dev/null)}) || tmux_sessions=()
-  ghostty_instance_running=false
- 
-  for row in "${(@f)$(tmux list-clients -F $'#{client_session}\t#{client_termname}' 2>/dev/null)}"; do
+  tmux_sessions=(${(@f)$(tmux list-sessions -F '#{session_name}' 2>/dev/null)}) || tmux_sessions=()
+  ghostty_instance_running=0
+  for row in "${(@f)$("$_tmux_bin" list-clients -F $'#{client_session}\t#{client_termname}' 2>/dev/null)}"; do
     values=("${(@ps:\t:)row}")
     session=$values[1]
     termname=$values[2]
 
-    if [[ $termname == "xterm-ghostty" ]]; then
-      ghostty_instance_running=true
-    fi
+    [[ $termname == xterm-ghostty ]] && ghostty_instance_running=1
 
     [[ -n $session ]] || continue
-    tmux_sessions=(${tmux_sessions:#($session)})
+    tmux_sessions=("${(@)tmux_sessions:#$session}")
   done
 
   if (( ${#tmux_sessions} == 0 )); then
     # if no tmux sessions need to be attached, create a new session.
     exec "$_tmux_bin" new-session
-  elif $ghostty_instance_running; then
+  elif (( ghostty_instance_running )); then
     # not all sessions are attached, but there is a ghostty instance running, create a new session (might've clicked on "New Window")
     exec "$_tmux_bin" new-session
   else
     # not all sessions are attached, and ghostty_instance is not running. load the first session on this terminal, and any other
     # sessions missing launch them in new window (or tab?)
 
-    exec "$_tmux_bin" attach-session -t "$tmux_sessions[1]"
-
     for session in "${tmux_sessions[@]:1}"; do
       if [[ $OSTYPE == darwin* ]]; then
-        # TODO: use applescript
-        open -na Ghostty.app --args -e "$_tmux_bin" attach-session -t "$session"
+        _tmux_command="$_tmux_bin attach-session -t ${(q)session}"
+        osascript \
+          -e 'on run argv' \
+          -e 'tell application "Ghostty"' \
+          -e 'set cfg to new surface configuration' \
+          -e 'set initial input of cfg to (item 1 of argv) & "; exit" & linefeed' \
+          -e 'set environment variables of cfg to {"GHOSTTY_TMUX_RESTORE=1"}' \
+          -e 'set win to new window with configuration cfg' \
+          -e 'end tell' \
+          -e 'end run' \
+          "$_tmux_command" >/dev/null
       elif [[ -n $_ghostty_bin ]]; then
         "$_ghostty_bin" +new-window -e "$_tmux_bin" attach-session -t "$session"
       fi
     done
+
+    exec "$_tmux_bin" attach-session -t "${tmux_sessions[1]}"
   fi
 fi
 
