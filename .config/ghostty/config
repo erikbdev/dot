@@ -17,23 +17,36 @@ theme = Xcode Dark hc
 window-padding-x = 4
 window-inherit-font-size = false
 
-# Pass Command-S through tmux to AstroNvim's save mapping.
-keybind = super+s=text:\x13
-# Keep Ghostty windows available without creating a second tab layer.
-keybind = super+t=unbind
 macos-option-as-alt = true
-confirm-close-surface = false
 copy-on-select = false
 gtk-toolbar-style = flat
-gtk-titlebar = true 
-gtk-tabs-location = hidden
 
-# .config/ghostty/config
-keybind = ctrl+shift+t=unbind
-keybind = ctrl+shift+o=unbind
-keybind = ctrl+shift+e=unbind
-keybind = ctrl+shift+enter=unbind
-keybind = ctrl+shift+d=unbind
+# Pass Command-S through tmux to AstroNvim's save mapping.
+keybind = super+s=text:\x13
+
+# Create splits (vim motions)
+keybind = ctrl+shift+l=new_split:right
+keybind = ctrl+shift+j=new_split:down
+keybind = ctrl+shift+h=new_split:left
+keybind = ctrl+shift+k=new_split:up
+
+# Navigate between splits
+keybind = ctrl+h=goto_split:left
+keybind = ctrl+l=goto_split:right
+keybind = ctrl+j=goto_split:down
+keybind = ctrl+k=goto_split:up
+
+# Resize splits
+keybind = ctrl+alt+h=resize_split:left,15
+keybind = ctrl+alt+j=resize_split:down,15
+keybind = ctrl+alt+k=resize_split:up,15
+keybind = ctrl+alt+l=resize_split:right,15
+
+# Close current split
+keybind = ctrl+shift+w=close_surface
+
+# Fullscreen toggle
+keybind = ctrl+shift+f=toggle_fullscreen
 
 # Custom macOS Config
 config-file = ?~/Library/Application Support/com.mitchellh.ghostty/config
