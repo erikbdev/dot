@@ -1,4 +1,5 @@
-# [env_var.ZMX_SESSION]
-# format = "[$env_value]($style) "
-# description = "zmx session name"
-# style = "bold magenta"
+right_format = '${env_var.ZMX_SESSION}'
+
+[env_var.ZMX_SESSION]
+format = '[\[zmx:$env_value\]](bold cyan) '
+description = 'zmx session name'
