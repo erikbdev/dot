@@ -1,4 +1,4 @@
-dev() {
+dev-container() {
   emulate -L zsh
 
   local dockerfile=Dockerfile
