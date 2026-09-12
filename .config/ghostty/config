@@ -22,33 +22,32 @@ copy-on-select = false
 gtk-toolbar-style = flat
 confirm-close-surface=false
 
-
-# Pass Command-S through tmux to AstroNvim's save mapping.
-keybind = super+s=text:\x13
-
-# Create splits (vim motions)
-keybind = ctrl+shift+l=new_split:right
-keybind = ctrl+shift+j=new_split:down
-keybind = ctrl+shift+h=new_split:left
-keybind = ctrl+shift+k=new_split:up
-
-# Navigate between splits
-keybind = ctrl+h=goto_split:left
-keybind = ctrl+l=goto_split:right
-keybind = ctrl+j=goto_split:down
-keybind = ctrl+k=goto_split:up
-
-# Resize splits
-keybind = ctrl+alt+h=resize_split:left,15
-keybind = ctrl+alt+j=resize_split:down,15
-keybind = ctrl+alt+k=resize_split:up,15
-keybind = ctrl+alt+l=resize_split:right,15
-
-# Close current split
-keybind = ctrl+shift+w=close_surface
-
-# Fullscreen toggle
-keybind = ctrl+shift+f=toggle_fullscreen
-
 # Custom macOS Config
 config-file = ?~/Library/Application Support/com.mitchellh.ghostty/config
+
+# Pass Command-S through tmux to AstroNvim's save mapping.
+# keybind = super+s=text:\x13
+
+# Create splits (vim motions)
+# keybind = ctrl+shift+l=new_split:right
+# keybind = ctrl+shift+j=new_split:down
+# keybind = ctrl+shift+h=new_split:left
+# keybind = ctrl+shift+k=new_split:up
+
+# Navigate between splits
+# keybind = ctrl+h=goto_split:left
+# keybind = ctrl+l=goto_split:right
+# keybind = ctrl+j=goto_split:down
+# keybind = ctrl+k=goto_split:up
+
+# Resize splits
+# keybind = ctrl+alt+h=resize_split:left,15
+# keybind = ctrl+alt+j=resize_split:down,15
+# keybind = ctrl+alt+k=resize_split:up,15
+# keybind = ctrl+alt+l=resize_split:right,15
+
+# Close current split
+# keybind = ctrl+shift+w=close_surface
+
+# Fullscreen toggle
+# keybind = ctrl+shift+f=toggle_fullscreen
