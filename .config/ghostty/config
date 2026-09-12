@@ -13,20 +13,18 @@
 
 font-family = CommitMonoErikb Nerd Font
 font-size = 9
-theme = Xcode Dark hc
-window-padding-x = 4
+
+window-theme = ghostty
 window-inherit-font-size = false
+window-padding-balance = true
+# window-padding-x = 0
+window-padding-y = 0
 
 macos-option-as-alt = true
-copy-on-select = false
+copy-on-select = clipboard
 gtk-toolbar-style = flat
 confirm-close-surface=false
-
-# Custom macOS Config
-config-file = ?~/Library/Application Support/com.mitchellh.ghostty/config
-
-# Pass Command-S through tmux to AstroNvim's save mapping.
-# keybind = super+s=text:\x13
+app-notifications = no-clipboard-copy
 
 # Create splits (vim motions)
 # keybind = ctrl+shift+l=new_split:right
@@ -34,20 +32,26 @@ config-file = ?~/Library/Application Support/com.mitchellh.ghostty/config
 # keybind = ctrl+shift+h=new_split:left
 # keybind = ctrl+shift+k=new_split:up
 
-# Navigate between splits
-# keybind = ctrl+h=goto_split:left
-# keybind = ctrl+l=goto_split:right
-# keybind = ctrl+j=goto_split:down
-# keybind = ctrl+k=goto_split:up
+# Navigate between splits — "performable:" means Ghostty only consumes the
+# key if a split exists in that direction; otherwise it falls through to
+# nvim so smart-splits.nvim can move focus within the nvim window grid.
+# keybind = performable:ctrl+h=goto_split:left
+# keybind = performable:ctrl+l=goto_split:right
+# keybind = performable:ctrl+j=goto_split:down
+# keybind = performable:ctrl+k=goto_split:up
 
 # Resize splits
-# keybind = ctrl+alt+h=resize_split:left,15
-# keybind = ctrl+alt+j=resize_split:down,15
-# keybind = ctrl+alt+k=resize_split:up,15
-# keybind = ctrl+alt+l=resize_split:right,15
+# keybind = ctrl+alt+shift+h=resize_ e esplit:left,15
+# keybind = ctrl+alt+shift+j=resize_split:down,15
+# keybind = ctrl+alt+shift+k=resize_split:up,15
+# keybind = ctrl+alt+shift+l=resize_split:right,15
 
 # Close current split
 # keybind = ctrl+shift+w=close_surface
 
 # Fullscreen toggle
 # keybind = ctrl+shift+f=toggle_fullscreen
+
+# Config
+config-file = ?auto/theme.ghostty
+config-file = ?~/Library/Application Support/com.mitchellh.ghostty/config
