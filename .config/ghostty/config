@@ -26,25 +26,23 @@ gtk-toolbar-style = flat
 confirm-close-surface=false
 app-notifications = no-clipboard-copy
 
-# Create splits (vim motions)
-# keybind = ctrl+shift+l=new_split:right
-# keybind = ctrl+shift+j=new_split:down
-# keybind = ctrl+shift+h=new_split:left
-# keybind = ctrl+shift+k=new_split:up
+# Create splits 
+keybind = ctrl+shift+l=new_split:right
+keybind = ctrl+shift+j=new_split:down
+keybind = ctrl+shift+h=new_split:left
+keybind = ctrl+shift+k=new_split:up
 
-# Navigate between splits — "performable:" means Ghostty only consumes the
-# key if a split exists in that direction; otherwise it falls through to
-# nvim so smart-splits.nvim can move focus within the nvim window grid.
-# keybind = performable:ctrl+h=goto_split:left
-# keybind = performable:ctrl+l=goto_split:right
-# keybind = performable:ctrl+j=goto_split:down
-# keybind = performable:ctrl+k=goto_split:up
+# Navigate between splits
+keybind = ctrl+alt+h=goto_split:left
+keybind = ctrl+alt+l=goto_split:right
+keybind = ctrl+alt+j=goto_split:down
+keybind = ctrl+alt+k=goto_split:up
 
 # Resize splits
-# keybind = ctrl+alt+shift+h=resize_ e esplit:left,15
-# keybind = ctrl+alt+shift+j=resize_split:down,15
-# keybind = ctrl+alt+shift+k=resize_split:up,15
-# keybind = ctrl+alt+shift+l=resize_split:right,15
+keybind = ctrl+alt+shift+h=resize_split:left,15
+keybind = ctrl+alt+shift+j=resize_split:down,15
+keybind = ctrl+alt+shift+k=resize_split:up,15
+keybind = ctrl+alt+shift+l=resize_split:right,15
 
 # Close current split
 # keybind = ctrl+shift+w=close_surface
