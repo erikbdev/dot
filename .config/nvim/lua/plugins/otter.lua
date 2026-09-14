@@ -18,7 +18,7 @@ return {
       {
         "<leader>co",
         function()
-          require("otter").activate({ "javascript", "css" })
+          require("otter").activate({ "javascript", "css", "html" })
         end,
         desc = "Activate otter (JS/CSS embedded in Swift)",
       },
@@ -35,7 +35,7 @@ return {
   -- Parsers needed for the injected regions themselves.
   {
     "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "javascript", "css" } },
+    opts = { ensure_installed = { "javascript", "css", "html" } },
   },
 
   -- LSP servers otter borrows from — mason auto-installs both since they're
@@ -46,6 +46,7 @@ return {
       servers = {
         vtsls = {},
         cssls = {},
+        html = {},
       },
     },
   },

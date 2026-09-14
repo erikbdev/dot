@@ -1,50 +1,76 @@
 ;; extends
 
-; Inject JavaScript/CSS into Swift string literals that are immediately
-; preceded by a `/* js */` or `/* css */` marker comment. Used by
-; swift-wav's MainPage.swift, which inlines its client-side JS/CSS as
-; plain multi-line Swift string properties (`Self.appScript`,
-; `Self.styles`) instead of separate files.
+; Inject embedded languages into Swift string literals that are immediately
+; preceded by a `/* <language> */` marker comment. Strings may be direct
+; siblings of the marker or nested in a `statements`/`value_argument` node
+; (as they are when passed to a function such as `HTMLRaw`).
 ;
-; The comment and the string are NOT direct siblings — tree-sitter-swift
-; wraps a computed property's body in a `statements` node, so the pattern
-; has to match through that wrapper (verified against the actual parse
-; tree, not assumed).
-;
-; This captures the WHOLE `multi_line_string_literal` node (delimiters
-; included), then `#offset!` trims the 3-char `"""` on each side by hand —
-; assumes both `"""` lines are indented with exactly 4 spaces (this
-; project's convention); change the offsets if that indentation changes.
-;
-; `(#set! injection.include-children)` is required and easy to miss: by
-; default Neovim's injection system MASKS OUT a captured node's named
-; children and only injects the gaps between them (this exists so e.g.
-; `"text \(expr)"` doesn't treat the interpolated `expr` as part of the
-; injected language). Since real JS/CSS is full of `"quoted strings"`,
-; tree-sitter-swift's lexer breaks `multi_line_string_literal` into many
-; `multi_line_str_text` children around each one — without
-; `include-children` the default masking drops everything between them,
-; producing a corrupted, effectively-random subset of the source (found
-; by dumping actual injected text: real content came out truncated/
-; scrambled, and even a whole-file text dump the wrong length was traced
-; to this, not a query-matching bug). With `include-children` set, the
-; single offset-trimmed range is used as-is — verified clean end-to-end
-; against both a small probe and the real ~300-line `script`/`styles`.
+; Add supported marker languages to the `any-of?` list below. The marker
+; supplies the injection language, with `js` normalized to `javascript`.
 
-((multiline_comment) @_marker
+; Single-line strings have one text node for the usual case, so keep their
+; content capture unchanged.
+((multiline_comment) @injection.language
  .
- (statements
-   (multi_line_string_literal) @injection.content)
- (#match? @_marker "js")
- (#offset! @injection.content 1 -4 0 -3)
- (#set! injection.language "javascript")
+ [
+   (line_string_literal
+     (line_str_text) @injection.content)
+   (_
+     (line_string_literal
+       (line_str_text) @injection.content))
+ ]
+ (#any-of? @injection.language "/* js */" "/* javascript */" "/* css */" "/* html */")
+ (#offset! @injection.language 0 3 0 -3)
+ (#gsub! @injection.language "js" "javascript"))
+
+; Swift splits a multiline string into multiple text nodes around embedded
+; quotes. Capture the complete literal instead, include its children, and
+; remove only the outer triple-quote delimiters.
+((multiline_comment) @injection.language
+ .
+ [
+   (multi_line_string_literal) @injection.content
+   (_
+     (multi_line_string_literal) @injection.content)
+ ]
+ (#any-of? @injection.language "/* js */" "/* javascript */" "/* css */" "/* html */")
+ (#offset! @injection.language 0 3 0 -3)
+ (#gsub! @injection.language "js" "javascript")
+ (#offset! @injection.content 0 3 0 -3)
  (#set! injection.include-children))
 
-((multiline_comment) @_marker
+; Swift raw strings use a single # around the quote in the forms handled here:
+; #"..."# and #"""..."""#. The raw_string_literal node includes both
+; delimiters, so remove them from the injected range.
+
+; Single-line raw strings.
+((multiline_comment) @injection.language
  .
- (statements
-   (multi_line_string_literal) @injection.content)
- (#match? @_marker "css")
- (#offset! @injection.content 1 -4 0 -3)
- (#set! injection.language "css")
+ [
+   (raw_string_literal) @injection.content
+   (_
+     (raw_string_literal) @injection.content)
+ ]
+ (#any-of? @injection.language "/* js */" "/* javascript */" "/* css */" "/* html */")
+ (#offset! @injection.language 0 3 0 -3)
+ (#gsub! @injection.language "js" "javascript")
+ (#lua-match? @injection.content "^#\"")
+ (#not-lua-match? @injection.content "^#\"\"\"")
+ (#offset! @injection.content 0 2 0 -2)
+ (#set! injection.include-children))
+
+; Multiline raw strings. Include children so interpolations do not mask the
+; surrounding injected region.
+((multiline_comment) @injection.language
+ .
+ [
+   (raw_string_literal) @injection.content
+   (_
+     (raw_string_literal) @injection.content)
+ ]
+ (#any-of? @injection.language "/* js */" "/* javascript */" "/* css */" "/* html */")
+ (#offset! @injection.language 0 3 0 -3)
+ (#gsub! @injection.language "js" "javascript")
+ (#lua-match? @injection.content "^#\"\"\"")
+ (#offset! @injection.content 0 4 0 -4)
  (#set! injection.include-children))

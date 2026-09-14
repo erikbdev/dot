@@ -9,7 +9,7 @@ return {
       picker = {
         sources = {
           files = { hidden = true, ignored = true },
-          explorer = { hidden = true, ignored = true },
+          explorer = { hidden = true, ignored = true, layout = { layout = { position = "right" } } },
         },
       },
     },
