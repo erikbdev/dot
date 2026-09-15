@@ -26,6 +26,9 @@ gtk-toolbar-style = flat
 confirm-close-surface=false
 app-notifications = no-clipboard-copy
 
+# Create new tab
+keybind = ctrl+shift+tab=new_tab
+
 # Create splits
 
 keybind = ctrl+shift+t>l=new_split:right

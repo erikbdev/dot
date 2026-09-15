@@ -14,12 +14,6 @@ end
 map("n", "<leader>/", "gcc", { remap = true, desc = "Toggle comment line" })
 map("v", "<leader>/", "gc", { remap = true, desc = "Toggle comment" })
 
--- Navigate between splits
-map("n", "<C-h>", "<C-w>h", { desc = "Focus left split" })
-map("n", "<C-j>", "<C-w>j", { desc = "Focus lower split" })
-map("n", "<C-k>", "<C-w>k", { desc = "Focus upper split" })
-map("n", "<C-l>", "<C-w>l", { desc = "Focus right split" })
-
 -- Normal Neovim window splits
 map("n", "<C-w>h", "<cmd>leftabove vsplit<cr>", { desc = "Window split left" })
 map("n", "<C-w>l", "<cmd>rightbelow vsplit<cr>", { desc = "Window split right" })
@@ -42,6 +36,12 @@ end, { desc = "Terminal up" })
 map("n", "<C-t>l", function()
   terminal_split("rightbelow vsplit")
 end, { desc = "Terminal right" })
+
+-- Navigate between splits
+map("n", "<C-h>", "<C-w>h", { desc = "Focus left split" })
+map("n", "<C-j>", "<C-w>j", { desc = "Focus lower split" })
+map("n", "<C-k>", "<C-w>k", { desc = "Focus upper split" })
+map("n", "<C-l>", "<C-w>l", { desc = "Focus right split" })
 
 -- Resize splits
 map("n", "<C-Left>", "<cmd>vertical resize -2<cr>", { desc = "Resize left" })
