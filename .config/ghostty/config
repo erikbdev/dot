@@ -12,7 +12,7 @@
 #
 
 font-family = CommitMonoErikb Nerd Font
-font-size = 9
+font-size = 8
 
 window-theme = ghostty
 window-inherit-font-size = false
