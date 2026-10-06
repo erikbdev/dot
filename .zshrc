@@ -134,3 +134,16 @@ bindkey '^[OB' history-substring-search-down
 
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 command -v fzf >/dev/null 2>&1 && source <(fzf --zsh)
+
+# Open files in the nvim already running for this project or a parent dir
+# (see ~/.config/nvim/lua/config/options.lua), else start a new nvim.
+e() {
+  local dir=$PWD sock
+  while :; do
+    sock="${XDG_RUNTIME_DIR:-/tmp}/nvim-$(printf %s "$dir" | sha256sum | cut -c1-12).sock"
+    [[ -S $sock ]] && { nvim --server "$sock" --remote "${@:A}"; return; }
+    [[ $dir == / ]] && break
+    dir=${dir:h}
+  done
+  nvim "$@"
+}
