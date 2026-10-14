@@ -74,3 +74,44 @@
  (#lua-match? @injection.content "^#\"\"\"")
  (#offset! @injection.content 0 4 0 -4)
  (#set! injection.include-children))
+
+; The Swift Tree-sitter scanner currently treats any quote followed by the
+; opener's matching hashes as a raw-string end, even in multiline strings.
+; Use two hashes when embedded content contains a quote followed by one hash,
+; as in JavaScript selectors.
+; Single-line raw strings.
+((multiline_comment) @injection.language
+ .
+ [
+   (raw_string_literal) @injection.content
+   (_
+     (raw_string_literal) @injection.content)
+ ]
+ (#any-of? @injection.language "/* js */" "/* javascript */" "/* css */" "/* html */")
+ (#offset! @injection.language 0 3 0 -3)
+ (#gsub! @injection.language "js" "javascript")
+ (#lua-match? @injection.content "^##\"")
+ (#not-lua-match? @injection.content "^##\"\"\"")
+ (#offset! @injection.content 0 3 0 -3)
+ (#set! injection.include-children))
+
+; Two-hash raw multiline strings, ##"""..."""##.
+((multiline_comment) @injection.language
+ .
+ [
+   (raw_string_literal) @injection.content
+   (_
+     (raw_string_literal) @injection.content)
+ ]
+ (#any-of? @injection.language "/* js */" "/* javascript */" "/* css */" "/* html */")
+ (#offset! @injection.language 0 3 0 -3)
+ (#gsub! @injection.language "js" "javascript")
+ (#lua-match? @injection.content "^##\"\"\"")
+ (#offset! @injection.content 0 5 0 -5)
+ (#set! injection.include-children))
+
+; Raw-string interpolation remains Swift even inside an injected language.
+(raw_str_interpolation
+  (interpolated_expression) @injection.content
+  (#set! injection.language "swift")
+  (#set! injection.include-children))
