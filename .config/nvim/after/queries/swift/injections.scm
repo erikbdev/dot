@@ -59,8 +59,8 @@
  (#offset! @injection.content 0 2 0 -2)
  (#set! injection.include-children))
 
-; Multiline raw strings. Include children so interpolations do not mask the
-; surrounding injected region.
+; Marker-based injection also supports one-hash raw multiline strings,
+; #"""..."""#. Include children so interpolations do not mask the region.
 ((multiline_comment) @injection.language
  .
  [

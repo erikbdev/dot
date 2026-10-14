@@ -5,9 +5,9 @@
 -- after/queries/swift/injections.scm and proxies them to whatever LSP
 -- client is already attached for that filetype (vtsls / cssls below).
 --
--- NOTE: this only finds anything to inject once a `/* js */` or
--- `/* css */` marker comment sits directly before the string literal in
--- the Swift source — the injection query matches on that comment.
+-- NOTE: this only finds anything to inject once a `/* js */`, `/* css */`,
+-- or `/* html */` marker comment sits directly before the Swift string —
+-- the injection query matches on that comment.
 return {
   {
     "jmbuhr/otter.nvim",
