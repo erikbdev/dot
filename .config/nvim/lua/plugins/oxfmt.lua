@@ -1,14 +1,4 @@
-return {
-  -- LSP Server Configuration
-  {
-    "neovim/nvim-lspconfig",
-    opts = {
-      servers = {
-        oxfmt = {
-          enabled = true,
-          -- Additional settings can be added here
-        },
-      },
-    },
-  },
-}
+return function()
+  -- nvim-lspconfig supplies the server config, including local project binaries.
+  vim.lsp.enable('oxfmt')
+end

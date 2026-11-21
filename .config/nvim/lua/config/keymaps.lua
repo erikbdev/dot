@@ -1,21 +1,16 @@
--- Keymaps are automatically loaded on the VeryLazy event
--- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
--- Add any additional keymaps here
-
 local map = vim.keymap.set
 
--- Toggle comment, on top of the default gcc/gc.
-map("n", "<leader>/", "gcc", { remap = true, desc = "Toggle comment line" })
-map("v", "<leader>/", "gc", { remap = true, desc = "Toggle comment" })
-
--- Terminals live in Ghostty splits, not inside Neovim.
-vim.keymap.del("n", "<leader>ft")
-vim.keymap.del("n", "<leader>fT")
-vim.keymap.del({ "n", "t" }, "<C-/>")
-vim.keymap.del({ "n", "t" }, "<C-_>")
-
--- Tabs live in Ghostty, not inside Neovim.
-for _, lhs in ipairs({ "<tab><tab>", "<tab>]", "<tab>[", "<tab>d", "<tab>l", "<tab>f", "<tab>o" }) do
-  vim.keymap.del("n", "<leader>" .. lhs)
-end
-vim.keymap.del("n", "<leader>uA")
+map('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlight' })
+map('n', '<leader>e', '<cmd>edit .<CR>', { desc = 'Browse working directory' })
+map('n', '<leader>bd', '<cmd>bdelete<CR>', { desc = 'Close buffer' })
+map('n', '<leader>qq', '<cmd>confirm qall<CR>', { desc = 'Quit Neovim' })
+map('n', '<leader>cd', vim.diagnostic.open_float, { desc = 'Diagnostic details' })
+map('i', '<C-Space>', function()
+  vim.lsp.completion.get()
+end, { desc = 'Trigger LSP completion' })
+map('n', '[d', function()
+  vim.diagnostic.jump({ count = -1, float = true })
+end, { desc = 'Previous diagnostic' })
+map('n', ']d', function()
+  vim.diagnostic.jump({ count = 1, float = true })
+end, { desc = 'Next diagnostic' })
