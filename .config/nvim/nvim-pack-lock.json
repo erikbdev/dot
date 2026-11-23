@@ -10,6 +10,11 @@
       "src": "https://github.com/ibhagwan/fzf-lua",
       "version": "'main'"
     },
+    "guess-indent.nvim": {
+      "rev": "84a4987ff36798c2fc1169cbaff67960aed9776f",
+      "src": "https://github.com/NMAC427/guess-indent.nvim",
+      "version": "'main'"
+    },
     "nvim-lspconfig": {
       "rev": "4648fd8ba5c678d7e2db75ae44ffac269bb589d8",
       "src": "https://github.com/neovim/nvim-lspconfig",
@@ -18,6 +23,11 @@
     "nvim-treesitter": {
       "rev": "37e52c733ada9d8d544d53a763140ef1ba404353",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter",
+      "version": "'main'"
+    },
+    "otter.nvim": {
+      "rev": "6f05811621460eca983bf2cd877e63c59a40720e",
+      "src": "https://github.com/jmbuhr/otter.nvim",
       "version": "'main'"
     }
   }

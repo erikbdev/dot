@@ -97,11 +97,16 @@ local function fallback_shell(message)
   return { "/bin/zsh", "-l", "-c", script }
 end
 
-local function terminal_block(cwd, command)
+local function terminal_block(cwd, command, close_on_completion)
+  local exit_options = { on_completion = close_on_completion == true }
+  if close_on_completion then
+    exit_options.quick_exit_threshold_ms = 0
+  end
+
   local options = {
     cwd = cwd,
     path_prepend = path_prepend(),
-    exit = { on_completion = false },
+    exit = exit_options,
   }
 
   if command then
@@ -434,6 +439,31 @@ local function current_project(ctx)
   end
   return choose_project()
 end
+
+local function current_working_directory(ctx)
+  local path
+  if ctx and ctx.block_id then
+    local result = rex.block.call(terminal_creator, "pwd", {
+      block_id = ctx.block_id,
+    })
+    if result then
+      path = path_from_url(result.pwd)
+    end
+  end
+  if not path then
+    path = path_from_url(os.getenv("PWD"))
+  end
+  if not path then
+    error("LazyGit: Could not determine the current working directory.", 0)
+  end
+  local is_dir, why = is_directory(path)
+  if not is_dir then
+    error("LazyGit: Current working directory is unavailable: " .. path
+      .. (why and (": " .. why) or ""), 0)
+  end
+  return path
+end
+
 
 local function workspace_label(project)
   local label = "iOS Development: " .. project
@@ -923,6 +953,33 @@ rex.action({
       local window = open_window("Codex", project, command)
       return { window_id = window.window_id, project_path = project }
     end
+  end,
+})
+
+rex.action({
+  name = "open_lazygit",
+  title = "Git: Open LazyGit",
+  category = "Development",
+  description = "Open LazyGit in the focused terminal directory and close the floating window on exit.",
+  run = function(ctx)
+    local lazygit = executable("lazygit")
+    if not lazygit then
+      error("LazyGit: lazygit was not found. Install it or add it to PATH.", 0)
+    end
+    local cwd = current_working_directory(ctx)
+    local layer, err = rex.session.new_layer({
+      bounds = { 0.1, 0.1, 0.8, 0.8 },
+      layout = terminal_block(cwd, { lazygit }, true),
+      focus = true,
+    })
+    if not layer then
+      error("LazyGit: Could not open the floating window: "
+        .. tostring(err or "Rex returned no layer"), 0)
+    end
+    if err then
+      error("LazyGit: Could not open the floating window: " .. tostring(err), 0)
+    end
+    return { layer_id = layer.layer_id, cwd = cwd }
   end,
 })
 

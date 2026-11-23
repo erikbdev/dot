@@ -1,6 +1,7 @@
 local map = vim.keymap.set
 
 map('n', '<Esc>', '<cmd>nohlsearch<CR>', { desc = 'Clear search highlight' })
+map('n', '<leader>/', 'gcc', { remap = true, desc = 'Toggle comment line' })
 map('n', '<leader>e', '<cmd>edit .<CR>', { desc = 'Browse working directory' })
 map('n', '<leader>bd', '<cmd>bdelete<CR>', { desc = 'Close buffer' })
 map('n', '<leader>qq', '<cmd>confirm qall<CR>', { desc = 'Quit Neovim' })
