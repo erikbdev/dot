@@ -7,7 +7,7 @@ return function()
       update_root = true,
     },
     view = {
-      side = 'left',
+      side = 'right',
       width = 32,
     },
     actions = {

@@ -20,6 +20,11 @@
       "src": "https://github.com/neovim/nvim-lspconfig",
       "version": "'master'"
     },
+    "nvim-tree.lua": {
+      "rev": "6e539e91302d2e201b078a45d214177140134523",
+      "src": "https://github.com/nvim-tree/nvim-tree.lua",
+      "version": "'master'"
+    },
     "nvim-treesitter": {
       "rev": "37e52c733ada9d8d544d53a763140ef1ba404353",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter",
@@ -28,6 +33,11 @@
     "otter.nvim": {
       "rev": "6f05811621460eca983bf2cd877e63c59a40720e",
       "src": "https://github.com/jmbuhr/otter.nvim",
+      "version": "'main'"
+    },
+    "which-key.nvim": {
+      "rev": "3aab2147e74890957785941f0c1ad87d0a44c15a",
+      "src": "https://github.com/folke/which-key.nvim",
       "version": "'main'"
     }
   }

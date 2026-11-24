@@ -5,7 +5,7 @@ return function()
   end
 
   vim.diagnostic.config({
-    virtual_text = false,
+    virtual_text = true,
     underline = true,
     severity_sort = true,
     update_in_insert = false,

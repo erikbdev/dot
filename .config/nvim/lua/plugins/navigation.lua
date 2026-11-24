@@ -9,7 +9,6 @@ return function()
   })
 
   local map = vim.keymap.set
-  map('n', '<leader><leader>', fzf.files, { desc = 'Find files' })
   map('n', '<leader>ff', fzf.files, { desc = 'Find files' })
   map('n', '<leader>fr', fzf.oldfiles, { desc = 'Recent files' })
   map('n', '<leader>fb', fzf.buffers, { desc = 'Open buffers' })
