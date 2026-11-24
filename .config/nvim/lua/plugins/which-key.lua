@@ -10,7 +10,7 @@ return function()
       row = math.huge,
       col = math.huge,
       no_overlap = false,
-      padding = { 1, 2 },
+      padding = { 0, 1 },
       title = true,
       wo = { winblend = 0 },
     },
