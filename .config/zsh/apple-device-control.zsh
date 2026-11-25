@@ -17,6 +17,9 @@ Commands:
   run            Build, install, and launch the app.
   watch          Run once, then rebuild, reinstall, and relaunch on file changes.
                  If no device is active, watch boots the only available simulator.
+                 The Rex block label and terminal title show the device, OS
+                 version, scheme, project, and current phase; OSC status is sent too.
+                 Build, run, and watch use the terminal alternate screen when interactive.
 
 Options for build, run, and watch:
   -p, --project PATH       Project bundle or directory (default: current working directory)
@@ -46,7 +49,8 @@ Project defaults:
   for interactive or agent use.
 
 Requirements:
-  Xcode command-line tools and jq. Build output uses xcbeautify when installed.
+  Xcode command-line tools and jq. xcbeautify reports warning/error tasks only;
+  without it, xcodebuild runs in quiet mode.
 
 Examples:
   apple-device-control devices
@@ -61,22 +65,158 @@ _adc_error() {
   print -u2 -r -- "apple-device-control: $*"
 }
 
-# OSC 0 sets the terminal title; OSC 9;4 requests an indeterminate progress icon.
-_adc_terminal_status() {
+_adc_terminal_alternate_screen() {
   emulate -L zsh
-  local label="$1"
-  local state="${2:-busy}"
-  local title_sequence progress_sequence
+  local capability="$1"
+  local sequence=''
 
   [[ -t 1 ]] || return 0
 
-  title_sequence=$'\e]0;'"$label"$'\a'
+  if command -v tput >/dev/null 2>&1; then
+    sequence="$(tput "$capability" 2>/dev/null)" || sequence=''
+  fi
+
+  if [[ -n "$sequence" ]]; then
+    print -rn -- "$sequence"
+  elif [[ "$capability" == smcup ]]; then
+    print -n -- $'\e[?1049h\e[H\e[2J'
+  elif [[ "$capability" == rmcup ]]; then
+    print -n -- $'\e[?1049l'
+  fi
+}
+
+# OSC 0/2 set the title; OSC 9;4 and OSC 7501 report progress and status.
+_adc_terminal_status() {
+  emulate -L zsh
+  local phase="$1"
+  local state="${2:-working}"
+  local message="${3:-$phase}"
+  local title_base="${_ADC_TERMINAL_TITLE_BASE:-apple-device-control}"
+  local icon terminal_title title_sequence progress_sequence protocol_state title_b64 message_b64 status_context
+
+  [[ -t 1 ]] || return 0
+
   case "$state" in
-    busy) progress_sequence=$'\e]9;4;3;0\a' ;;
-    error) progress_sequence=$'\e]9;4;2;100\a' ;;
-    *) progress_sequence=$'\e]9;4;0;0\a' ;;
+    loading|progress|working|waiting|busy)
+      icon='⏳'
+      progress_sequence=$'\e]9;4;3;0\a'
+      protocol_state=working
+      ;;
+    watching|watch)
+      icon='👀'
+      progress_sequence=$'\e]9;4;0;0\a'
+      protocol_state=idle
+      ;;
+    blocked)
+      icon='⏸'
+      progress_sequence=$'\e]9;4;0;0\a'
+      protocol_state=blocked
+      ;;
+    error)
+      icon='❌'
+      progress_sequence=$'\e]9;4;2;100\a'
+      protocol_state=error
+      ;;
+    done)
+      icon='✅'
+      progress_sequence=$'\e]9;4;0;0\a'
+      protocol_state=done
+      ;;
+    *)
+      icon=''
+      progress_sequence=$'\e]9;4;0;0\a'
+      protocol_state=idle
+      ;;
   esac
+
+  terminal_title="${icon:+$icon }$phase"
+  [[ -n "$title_base" ]] && terminal_title+=" · $title_base"
+  status_context="${_ADC_TERMINAL_STATUS_CONTEXT:-}"
+  [[ -n "$status_context" ]] && message="$message — $status_context"
+  message="${message//$'\n'/ }"
+  message="${message//$'\r'/ }"
+  message="${message//$'\t'/ }"
+  terminal_title="$(print -rn -- "$terminal_title" | LC_ALL=C tr -d '\000-\037\177')"
+  terminal_title="$(_adc_truncate_label "$terminal_title" 192)"
+  message="$(print -rn -- "$message" | LC_ALL=C tr -d '\000-\037\177')"
+  if (( ${#message} > 1800 )); then
+    message="${message[1,1799]}…"
+  fi
+  title_sequence=$'\e]0;'"$terminal_title"$'\a'
+  title_sequence+=$'\e]2;'"$terminal_title"$'\a'
+
+  title_b64="$(print -rn -- "$terminal_title" | /usr/bin/base64 | /usr/bin/tr -d '\r\n')"
+  message_b64="$(print -rn -- "$message" | /usr/bin/base64 | /usr/bin/tr -d '\r\n')"
   print -n -- "$title_sequence$progress_sequence"
+  printf '\e]7501;state=%s:app=apple-device-control:title=%s:msg=%s\e\\' \
+    "$protocol_state" "$title_b64" "$message_b64"
+  _adc_rex_set_block_label "$terminal_title"
+}
+
+typeset -g _ADC_TERMINAL_TITLE_BASE='apple-device-control'
+typeset -g _ADC_TERMINAL_STATUS_CONTEXT=''
+typeset -g _ADC_REX_LABEL_WARNING_SENT=0
+
+_adc_truncate_label() {
+  emulate -L zsh
+  local label="$1"
+  local limit="$2"
+  local phase_prefix identity_and_target identity suffix identity_length prefix_length
+
+  if (( ${#label} > limit )); then
+    phase_prefix="${label%% · *} · "
+    identity_and_target="${label#* · }"
+    if [[ "$identity_and_target" == *' | '* ]]; then
+      identity="${identity_and_target%% | *}"
+      suffix=" | ${identity_and_target#* | }"
+      identity_length=$((limit - ${#phase_prefix} - ${#suffix} - 1))
+      if (( identity_length > 0 )); then
+        label="$phase_prefix${identity[1,identity_length]}…$suffix"
+      elif (( ${#suffix} < limit - 1 )); then
+        prefix_length=$((limit - ${#suffix} - 1))
+        label="${phase_prefix[1,prefix_length]}…$suffix"
+      else
+        label="${label[1,$((limit - 1))]}…"
+      fi
+    else
+      label="${label[1,$((limit - 1))]}…"
+    fi
+  fi
+
+  print -rn -- "$label"
+}
+
+_adc_rex_set_block_label() {
+  emulate -L zsh
+  local label="$1"
+  local args
+
+  [[ -n "${REX_BLOCK:-}" ]] || return 0
+  command -v rex >/dev/null 2>&1 || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  label="$(print -rn -- "$label" | LC_ALL=C tr -d '\000-\037\177')"
+  label="$(_adc_truncate_label "$label" 128)"
+  args="$(jq -cn --arg block_id "$REX_BLOCK" --arg label "$label" '{block_id: $block_id, label: $label}')" || return 0
+  if ! rex api call -s "$REX_BLOCK" session.set_block_label "$args" >/dev/null 2>&1; then
+    if (( !_ADC_REX_LABEL_WARNING_SENT )); then
+      _adc_error 'could not update the Rex block label; the terminal title and OSC status are still being sent'
+      _ADC_REX_LABEL_WARNING_SENT=1
+    fi
+  fi
+}
+
+_adc_terminal_status_clear() {
+  emulate -L zsh
+
+  if [[ -t 1 ]]; then
+    print -n -- $'\e]0;\a\e]2;\a\e]9;4;0;0\a'
+    printf '\e]7501;state=idle:app=apple-device-control:title=:msg=\e\\'
+  fi
+
+  _ADC_TERMINAL_TITLE_BASE='apple-device-control'
+  _ADC_TERMINAL_STATUS_CONTEXT=''
+  _adc_rex_set_block_label ''
 }
 
 _adc_require_tools() {
@@ -126,6 +266,12 @@ _adc_collect_devices_json() {
               | sub("^com\\.apple\\.CoreSimulator\\.SimRuntime\\."; "")
               | sub("^iOS-"; "iOS ")
               | gsub("-"; ".")
+            ),
+            version: (
+              $runtime
+              | sub("^com\\.apple\\.CoreSimulator\\.SimRuntime\\."; "")
+              | sub("^iOS-"; "iOS ")
+              | gsub("-"; ".")
             )
           }
       ]
@@ -143,7 +289,19 @@ _adc_collect_devices_json() {
               elif .properties.connection.pairingState == "paired" then "paired"
               else (.properties.connection.state // "unknown") end
             ),
-            platform: "iOS"
+            platform: "iOS",
+            version: (
+              .properties.state.osVersionNumber //
+              .properties.state.osVersion //
+              .properties.state.operatingSystemVersion //
+              .properties.device.osVersionNumber //
+              .properties.device.osVersion //
+              .properties.device.operatingSystemVersion //
+              .deviceProperties.osVersionNumber //
+              .deviceProperties.osVersion //
+              .deviceProperties.operatingSystemVersion //
+              null
+            )
           }
       ]
       | sort_by(.kind, .name, .id)
@@ -173,9 +331,9 @@ _adc_devices() {
     return 0
   fi
 
-  print -r -- 'TYPE       STATE       RUNTIME          NAME                                      UDID'
+  print -r -- 'TYPE       STATE       VERSION          NAME                                      UDID'
   local kind state runtime name identifier
-  jq -r '.[] | "\(.kind)\t\(.state)\t\(.runtime // "-")\t\(.name)\t\(.id)"' <<< "$data" |
+  jq -r '.[] | "\(.kind)\t\(.state)\t\(.runtime // .version // "-")\t\(.name)\t\(.id)"' <<< "$data" |
     while IFS=$'\t' read -r kind state runtime name identifier; do
       printf '%-10s %-11s %-16s %-41s %s\n' "$kind" "$state" "$runtime" "$name" "$identifier"
     done
@@ -242,6 +400,15 @@ _adc_resolve_device() {
   fi
 
   jq -c '.[0]' <<< "$matches"
+}
+
+_adc_simulator_state() {
+  emulate -L zsh
+  local device_id="$1"
+  local devices
+
+  devices="$(xcrun simctl list devices available --json)" || return 1
+  jq -r --arg id "$device_id" '[.devices[] | .[] | select(.udid == $id) | .state][0] // empty' <<< "$devices"
 }
 
 _adc_find_project() {
@@ -470,9 +637,9 @@ _adc_xcodebuild() {
   setopt pipefail
 
   if command -v xcbeautify >/dev/null 2>&1; then
-    NSUnbufferedIO=YES xcodebuild "$@" 2>&1 | xcbeautify
+    NSUnbufferedIO=YES xcodebuild "$@" 2>&1 | xcbeautify --quiet --disable-logging
   else
-    xcodebuild "$@"
+    xcodebuild -quiet "$@"
   fi
 }
 
@@ -489,11 +656,11 @@ _adc_build_or_run() {
   local requested_runtime="${9:-}"
 
   local project_file project_type project_name selector_info selector_kind selector_name device_json
-  local device_id device_name device_kind device_state device_runtime destination sdk derived_data project_hash
-  local app_path bundle_id developer_dir
+  local device_id device_name device_kind device_state device_runtime device_version destination sdk derived_data project_hash
+  local app_path bundle_id developer_dir simulator_app device_hub_app
   local -a container_args build_selector_args build_args
 
-  _adc_terminal_status '⏳ apple-device-control — Resolving project' busy
+  _adc_terminal_status 'Loading project' loading 'Locating the Xcode project'
   project_file="$(_adc_find_project "$project_override")" || return 1
   project_name="${project_file:t:r}"
   if [[ "$project_file" == *.xcworkspace ]]; then
@@ -504,17 +671,27 @@ _adc_build_or_run() {
     project_type=project
   fi
 
-  _adc_terminal_status '⏳ apple-device-control — Selecting scheme' busy
+  _adc_terminal_status 'Selecting scheme' loading 'Reading available Xcode schemes'
   selector_info="$(_adc_resolve_scheme "$requested_scheme" "$project_name" "$project_type" "${container_args[@]}")" || return 1
   selector_kind="${selector_info%%$'\t'*}"
   selector_name="${selector_info#*$'\t'}"
-  _adc_terminal_status '⏳ apple-device-control — Selecting device' busy
+  _adc_terminal_status 'Selecting device' loading 'Resolving the requested device'
   device_json="$(_adc_resolve_device "$selector" "$allow_shutdown_simulator" "$requested_runtime")" || return 1
   device_id="$(jq -r '.id' <<< "$device_json")"
   device_name="$(jq -r '.name' <<< "$device_json")"
   device_kind="$(jq -r '.kind' <<< "$device_json")"
   device_state="$(jq -r '.state' <<< "$device_json")"
   device_runtime="$(jq -r '.runtime // empty' <<< "$device_json")"
+
+  device_version="$(jq -r '.version // .runtime // empty' <<< "$device_json")"
+  if [[ -z "$device_version" ]]; then
+    device_version='iOS version unknown'
+  elif [[ "$device_version" != iOS* ]]; then
+    device_version="iOS $device_version"
+  fi
+
+  _ADC_TERMINAL_TITLE_BASE="$selector_name (${project_file:t}) | $device_name ($device_version)"
+  _ADC_TERMINAL_STATUS_CONTEXT="$device_name • $device_version • $selector_kind: $selector_name • $configuration • ${project_file:t} • $device_kind • $device_id"
 
   if [[ "$device_kind" == simulator ]]; then
     destination="platform=iOS Simulator,id=$device_id"
@@ -541,14 +718,10 @@ _adc_build_or_run() {
   fi
   derived_data="${derived_data:a}"
 
-  if [[ -n "$device_runtime" ]]; then
-    print -r -- "Target: $device_name ($device_kind, $device_runtime, $device_id)"
-  else
-    print -r -- "Target: $device_name ($device_kind, $device_id)"
-  fi
-  print -r -- "DerivedData: $derived_data"
+  print -r -- "Device: $device_name * $device_version | $selector_name"
+  print -r -- "Device type: $device_kind • ID: $device_id"
+  print -r -- "Build: $configuration • Derived data: $derived_data"
   print -r -- "Project: $project_file"
-  print -r -- "${(C)selector_kind}: $selector_name ($configuration)"
   print -r -- 'Building...'
 
   build_args=(
@@ -558,16 +731,16 @@ _adc_build_or_run() {
     -derivedDataPath "$derived_data"
     build
   )
-  _adc_terminal_status "⏳ apple-device-control — Building $selector_name" busy
+  _adc_terminal_status "Building $selector_name" progress "Xcode is building $selector_name"
   _adc_xcodebuild "${build_args[@]}" || return $?
 
   if [[ "$action" == build ]]; then
-    _adc_terminal_status '✅ apple-device-control — Build complete' idle
+    _adc_terminal_status 'Build complete' done "Build complete: $derived_data"
     print -r -- "Build complete: $derived_data"
     return 0
   fi
 
-  _adc_terminal_status '⏳ apple-device-control — Locating built app' busy
+  _adc_terminal_status 'Loading built app' loading 'Finding the built application product'
   app_path="$(_adc_find_built_app \
     "$selector_name" \
     "$requested_bundle_id" \
@@ -580,33 +753,58 @@ _adc_build_or_run() {
     _adc_error "could not read CFBundleIdentifier from $app_path/Info.plist"
     return 1
   fi
+  _ADC_TERMINAL_STATUS_CONTEXT+=" • $bundle_id"
 
   print -r -- "Installing $bundle_id..."
   if [[ "$device_kind" == simulator ]]; then
-    if [[ "$device_state" != Booted ]]; then
-      print -r -- "Booting simulator $device_name..."
-      _adc_terminal_status "⏳ apple-device-control — Booting $device_name" busy
-      xcrun simctl boot "$device_id" || return $?
-    fi
-    _adc_terminal_status "⏳ apple-device-control — Waiting for $device_name" busy
-    xcrun simctl bootstatus "$device_id" -b || return $?
     developer_dir="$(xcode-select -p 2>/dev/null)"
-    if [[ -n "$developer_dir" && -d "$developer_dir/Applications/Simulator.app" ]]; then
-      open -a "$developer_dir/Applications/Simulator.app" --args -CurrentDeviceUDID "$device_id" >/dev/null 2>&1 || true
+    simulator_app="$developer_dir/Applications/Simulator.app"
+    device_hub_app="${developer_dir:h}/Applications/DeviceHub.app"
+
+    if [[ "$device_state" != Booted ]]; then
+      # Classic Simulator needs to be open before boot to attach a window to this device.
+      if [[ -n "$developer_dir" && -d "$simulator_app" ]]; then
+        print -r -- "Opening Simulator on $device_name..."
+        _adc_terminal_status "Opening $device_name window" loading "Opening Simulator before boot"
+        open -a "$simulator_app" --args -CurrentDeviceUDID "$device_id" >/dev/null 2>&1 || true
+      fi
+      print -r -- "Booting simulator $device_name..."
+      _adc_terminal_status "Booting $device_name" progress "Starting the selected simulator"
+      if ! xcrun simctl boot "$device_id" 2>/dev/null; then
+        device_state="$(_adc_simulator_state "$device_id")" || return 1
+        if [[ "$device_state" != Booted && "$device_state" != Booting && "$device_state" != Creating ]]; then
+          _adc_error "could not boot simulator $device_name"
+          return 1
+        fi
+      fi
+    fi
+    if [[ "$device_state" == Booted ]]; then
+      _adc_terminal_status "Checking $device_name readiness" loading "The selected simulator is already booted"
+    else
+      _adc_terminal_status "Waiting for $device_name to boot" waiting "Waiting for the selected simulator to finish booting"
+    fi
+    xcrun simctl bootstatus "$device_id" -b || return $?
+    if [[ -n "$developer_dir" && -d "$simulator_app" ]]; then
+      _adc_terminal_status "Selecting $device_name window" loading "Opening the selected simulator window"
+      open -a "$simulator_app" --args -CurrentDeviceUDID "$device_id" >/dev/null 2>&1 || true
+    elif [[ -n "$developer_dir" && -d "$device_hub_app" ]]; then
+      _adc_terminal_status "Selecting $device_name window" loading "Opening the selected Device Hub window"
+      open "devices://device/open?id=$device_id" >/dev/null 2>&1 || \
+        open -a "$device_hub_app" >/dev/null 2>&1 || true
     fi
     xcrun simctl terminate "$device_id" "$bundle_id" >/dev/null 2>&1 || true
-    _adc_terminal_status "⏳ apple-device-control — Installing on $device_name" busy
+    _adc_terminal_status "Installing on $device_name" progress "Installing $bundle_id"
     xcrun simctl install "$device_id" "$app_path" || return $?
-    _adc_terminal_status "⏳ apple-device-control — Launching on $device_name" busy
+    _adc_terminal_status "Launching on $device_name" progress "Launching $bundle_id"
     xcrun simctl launch "$device_id" "$bundle_id" || return $?
   else
-    _adc_terminal_status "⏳ apple-device-control — Installing on $device_name" busy
+    _adc_terminal_status "Installing on $device_name" progress "Installing $bundle_id"
     xcrun devicectl device install app --device "$device_id" "$app_path" || return $?
-    _adc_terminal_status "⏳ apple-device-control — Launching on $device_name" busy
+    _adc_terminal_status "Launching on $device_name" progress "Launching $bundle_id"
     xcrun devicectl device process launch --terminate-existing --device "$device_id" "$bundle_id" || return $?
   fi
 
-  _adc_terminal_status '✅ apple-device-control — Run complete' idle
+  _adc_terminal_status 'Run complete' done "Installed and launched $bundle_id on $device_name"
   print -r -- "Installed and launched $bundle_id on $device_name."
 }
 
@@ -625,6 +823,10 @@ _adc_project_command() {
   local interval="${APPLE_DEVICE_WATCH_INTERVAL:-1}"
   local command_status
   local help=0
+
+  _ADC_TERMINAL_TITLE_BASE='apple-device-control'
+  _ADC_TERMINAL_STATUS_CONTEXT=''
+  _ADC_REX_LABEL_WARNING_SENT=0
 
   while (( $# > 0 )); do
     case "$1" in
@@ -692,10 +894,17 @@ _adc_project_command() {
     fi
   fi
 
-  _adc_require_tools || return 1
+  _adc_terminal_status "Loading project" loading "Preparing $action"
+  if ! _adc_require_tools; then
+    _adc_terminal_status 'Could not start' error 'A required command is unavailable'
+    return 1
+  fi
 
   local project_file project_root
-  project_file="$(_adc_find_project "$project_override")" || return 1
+  project_file="$(_adc_find_project "$project_override")" || {
+    _adc_terminal_status 'Project not found' error 'Could not locate an Xcode project or workspace'
+    return 1
+  }
   project_root="${project_file:h}"
 
   if [[ "$action" != watch ]]; then
@@ -704,36 +913,47 @@ _adc_project_command() {
       "$bundle_id" "$derived_data" 0 "$requested_runtime"
     command_status=$?
     if (( command_status != 0 )); then
-      _adc_terminal_status "❌ apple-device-control — $action failed" error
+      _adc_terminal_status "$action failed" error "$action failed with exit status $command_status"
     fi
     return "$command_status"
   fi
 
   local previous_signature current_signature stable_signature
   local rebuild_status
-  previous_signature="$(_adc_project_signature "$project_root")" || return 1
+  previous_signature="$(_adc_project_signature "$project_root")" || {
+    _adc_terminal_status 'Watch failed' error 'Could not read project file state'
+    return 1
+  }
   _adc_build_or_run \
     run "$project_file" "$requested_scheme" "$selector" "$configuration" \
     "$bundle_id" "$derived_data" 1 "$requested_runtime"
   command_status=$?
   if (( command_status != 0 )); then
-    _adc_terminal_status '❌ apple-device-control — Initial watch run failed' error
+    _adc_terminal_status 'Initial watch run failed' error 'The initial build or launch failed'
     return "$command_status"
   fi
 
-  _adc_terminal_status "👀 apple-device-control — Watching ${project_root:t}" idle
+  _adc_terminal_status 'Watching for file changes' watching \
+    "Watching $project_root; polling every ${interval}s"
   print -r -- "Watching $project_root (polling every ${interval}s; Ctrl-C to stop)."
   while true; do
     sleep "$interval"
-    current_signature="$(_adc_project_signature "$project_root")" || return 1
+    current_signature="$(_adc_project_signature "$project_root")" || {
+      _adc_terminal_status 'Watch failed' error 'Could not read project file state'
+      return 1
+    }
     [[ "$current_signature" == "$previous_signature" ]] && continue
 
     print -r -- 'Project files changed; waiting for writes to settle...'
-    _adc_terminal_status '⏳ apple-device-control — Waiting for writes to settle' busy
+    _adc_terminal_status 'Waiting for file writes to settle' waiting \
+      'Project files changed; waiting for writes to settle'
     stable_signature="$current_signature"
     while true; do
       sleep 1
-      current_signature="$(_adc_project_signature "$project_root")" || return 1
+      current_signature="$(_adc_project_signature "$project_root")" || {
+        _adc_terminal_status 'Watch failed' error 'Could not read project file state'
+        return 1
+      }
       [[ "$current_signature" == "$stable_signature" ]] && break
       stable_signature="$current_signature"
     done
@@ -745,9 +965,11 @@ _adc_project_command() {
     rebuild_status=$?
     if (( rebuild_status != 0 )); then
       _adc_error 'build or deployment failed; still watching for the next change'
-      _adc_terminal_status '⚠️ apple-device-control — Watching after build failure' idle
+      _adc_terminal_status 'Watching after build failure' watching \
+        'The last build or deployment failed; waiting for the next change'
     else
-      _adc_terminal_status "👀 apple-device-control — Watching ${project_root:t}" idle
+      _adc_terminal_status 'Watching for file changes' watching \
+        "Watching $project_root; polling every ${interval}s"
     fi
     previous_signature="$stable_signature"
   done
@@ -770,6 +992,38 @@ _adc_main() {
 
 # ~/.zshrc sources this file, making the command available in interactive shells.
 apple-device-control() {
-  _adc_main "$@"
+  emulate -L zsh
+  local action="${1:-help}"
+  local argument
+  local use_alternate_screen=0
+  local command_status=130
+
+  case "$action" in
+    build|run|watch) use_alternate_screen=1 ;;
+  esac
+
+  if (( use_alternate_screen )); then
+    for argument in "$@"; do
+      if [[ "$argument" == -h || "$argument" == --help ]]; then
+        use_alternate_screen=0
+        break
+      fi
+    done
+  fi
+
+  if (( !use_alternate_screen )) || [[ ! -t 1 || "${TERM:-dumb}" == dumb ]]; then
+    _adc_main "$@"
+    return $?
+  fi
+
+  _adc_terminal_alternate_screen smcup
+  {
+    _adc_main "$@"
+    command_status=$?
+  } always {
+    _adc_terminal_alternate_screen rmcup
+    _adc_terminal_status_clear
+  }
+  return "$command_status"
 }
 
