@@ -3,10 +3,11 @@ vim.cmd('highlight clear')
 if vim.fn.exists('syntax_on') == 1 then
   vim.cmd('syntax reset')
 end
-vim.o.background = 'dark'
+-- vim.o.background = 'dark'
 vim.g.colors_name = 'xcodedark'
 
-local bg = '#1a1a1a'
+-- local bg = '#1a1a1a'
+local bg = ''
 local surface = '#252526'
 local line = '#2d2d30'
 local fg = '#ffffff'
